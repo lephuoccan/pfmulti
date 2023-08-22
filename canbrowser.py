@@ -21,13 +21,13 @@ class CanBrowser:
         self.driver = None
         self.profile_id = ID
 
-    def add_to_excel(self, profile_id, profile_name, profile_path, note):
+    def add_to_excel(self, profile_id, profile_name, note):
         excel_file_path = os.path.join(self.parent_dir, 'profiles.xlsx')
         
         if not os.path.exists(excel_file_path):
             workbook = openpyxl.Workbook()
             worksheet = workbook.active
-            worksheet.append(['ID', 'Profile Name', 'Profile Path', 'Note', "Last Used"])
+            worksheet.append(['ID', 'Profile Name', 'Note', "Last Used"])
         else:
             workbook = openpyxl.load_workbook(excel_file_path)
             worksheet = workbook.active
@@ -38,18 +38,10 @@ class CanBrowser:
                 return  # ID đã tồn tại, không cần thêm
         
         # Tìm dòng chính xác để thêm thông tin mới
-        insert_row = 2
-        for row in worksheet.iter_rows(min_col=1, max_col=1, min_row=2, max_row=worksheet.max_row, values_only=True):
-            if row[0] > profile_id:
-                break
-            insert_row += 1
-        
-        # Chèn thông tin mới vào dòng đúng
-        worksheet.insert_rows(insert_row)
+        insert_row = self.profile_id + 2
         worksheet.cell(row=insert_row, column=1, value=profile_id)
         worksheet.cell(row=insert_row, column=2, value=profile_name)
-        worksheet.cell(row=insert_row, column=3, value=profile_path)
-        worksheet.cell(row=insert_row, column=4, value=note)
+        worksheet.cell(row=insert_row, column=3, value=note)
         
         workbook.save(excel_file_path)
 
@@ -57,7 +49,7 @@ class CanBrowser:
         excel_file_path = os.path.join(self.parent_dir, 'profiles.xlsx')
         workbook = openpyxl.load_workbook(excel_file_path)
         worksheet = workbook.active
-        worksheet.cell(row=row_idx + 2, column=5, value=last_opened_time)  # Column index is 1-based
+        worksheet.cell(row=row_idx + 2, column=4, value=last_opened_time)  # Column index is 1-based
         workbook.save(excel_file_path)
 
     def create_webdriver(self, profile_name):
@@ -74,7 +66,7 @@ class CanBrowser:
         os.makedirs(profile_dir, exist_ok=True)
         self.create_webdriver(profile_name)
 
-        self.add_to_excel(self.profile_id, profile_name, profile_dir, "note")
+        self.add_to_excel(self.profile_id, profile_name, "note")
         
     def open_profile(self):
         self.create_profile()
@@ -122,13 +114,16 @@ class CanBrowser:
             worksheet = workbook.active
             
             # Calculate the next profile ID based on the number of existing profiles
-            profile_id = worksheet.max_row
+            profile_id = worksheet.max_row - 1
+            print(f"new profile {profile_id}")
             
         self.profile_id = profile_id
         self.create_profile()
+        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        self.update_last_opened_time(self.profile_id, current_time) 
 
 if __name__ == "__main__":
-    profile1 = CanBrowser(2)
+    profile1 = CanBrowser(0)
     profile1.open_profile()
     time.sleep(2)
     if profile1.driver:
